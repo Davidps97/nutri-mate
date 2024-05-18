@@ -16,7 +16,7 @@ class User
 
   public function getAllUsers()
   {
-    $query = "SELECT * FROM users";
+    $query = "SELECT * FROM $this->table_name";
     $stmt = $this->conn->prepare($query);
     $stmt->execute();
     return $stmt;
@@ -24,7 +24,7 @@ class User
 
   public function getUser($id)
   {
-    $query = "SELECT * FROM $this->table_name WHERE user_id = :id";
+    $query = "SELECT * FROM $this->table_name WHERE id = :id";
     $stmt = $this->conn->prepare($query);
     $stmt->bindParam(':id', $id);
     $stmt->execute();
@@ -39,6 +39,26 @@ class User
     $stmt->bindParam(':name', $this->name);
     $stmt->bindParam(':mail', $this->mail);
     $stmt->bindParam(':password', $this->password);
+    $stmt->execute();
+    return $stmt;
+  }
+
+  public function update()
+  {
+    $query = "UPDATE $this->table_name SET name = :name, mail = :mail WHERE id = :id";
+    $stmt = $this->conn->prepare($query);
+    $stmt->bindParam(':id', $this->id);
+    $stmt->bindParam(':name', $this->name);
+    $stmt->bindParam(':mail', $this->mail);
+    $stmt->execute();
+    return $stmt;
+  }
+
+  public function delete()
+  {
+    $query = "DELETE FROM $this->table_name WHERE id = :id";
+    $stmt = $this->conn->prepare($query);
+    $stmt->bindParam(':id', $this->id);
     $stmt->execute();
     return $stmt;
   }

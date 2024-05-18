@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/UserModel.php';
+require_once __DIR__ . '/../utils/Response.php';
 
 class UserController
 {
@@ -9,6 +10,7 @@ class UserController
   private $userId;
 
   private $user;
+  private $response;
 
   public function __construct($db, $requestMethod, $userId = null)
   {
@@ -16,6 +18,7 @@ class UserController
     $this->requestMethod = $requestMethod;
     $this->userId = $userId;
     $this->user = new User($db);
+    $this->response = new Response();
   }
 
   public function processRequest()
@@ -38,7 +41,7 @@ class UserController
         $response = $this->deleteUser($this->userId);
         break;
       default:
-        $response = $this->notFoundResponse();
+        $response = $this->response->notFoundResponse();
         break;
     }
     header($response['status_code_header']);
@@ -52,21 +55,21 @@ class UserController
   {
     $result = $this->user->getAllUsers();
     $users = $result->fetchAll(PDO::FETCH_ASSOC);
-    return $this->okResponse($users);
+    return $this->response->getResponse('HTTP/1.1 200 OK', $users);
   }
 
   private function getUser($id)
   {
     $result = $this->user->getUser($id);
     $user = $result->fetch(PDO::FETCH_ASSOC);
-    return $this->okResponse($user);
+    return $this->response->getResponse('HTTP/1.1 200 OK', $user);
   }
 
   private function createUser()
   {
     $input = (array) json_decode(file_get_contents('php://input'), TRUE);
     if (!$this->validateUser($input)) {
-      return $this->unprocessableEntityResponse();
+      return $this->response->unprocessableEntityResponse();
     }
 
     $this->user->name = $input['name'];
@@ -74,9 +77,9 @@ class UserController
     $this->user->password = $input['password'];
 
     if ($this->user->create()) {
-      return $this->createdResponse();
+      return $this->response->getResponse('HTTP/1.1 201 Created', ['message' => 'User Created']);
     } else {
-      return $this->internalServerErrorResponse();
+      return $this->response->getResponse('HTTP/1.1 500 Internal Server Error', ['message' => 'Failed to create user']);
     }
   }
 
@@ -90,51 +93,35 @@ class UserController
 
   private function updateUser($id)
   {
-    // similar implementation
+    $this->user->id = $id;
+    $input = (array) json_decode(file_get_contents('php://input'), TRUE);
+    if (!$this->validateUpdateUser($input)) {
+      return $this->response->unprocessableEntityResponse();
+    }
+
+    $this->user->name = $input['name'];
+    $this->user->mail = $input['mail'];
+
+    if ($this->user->update()) {
+      return $this->response->getResponse('HTTP/1.1 200 OK', ['message' => 'User Updated']);
+    } else {
+      return $this->response->getResponse('HTTP/1.1 500 Internal Server Error', ['message' => 'Failed to update user']);
+    }
+  }
+
+  private function validateUpdateUser($input)
+  {
+    if (!isset($input['name']) || !isset($input['mail'])) {
+      return false;
+    }
+    return true;
   }
 
   private function deleteUser($id)
   {
-    // similar implementation
-  }
-
-  private function okResponse($data)
-  {
-    return [
-      'status_code_header' => 'HTTP/1.1 200 OK',
-      'body' => json_encode($data)
-    ];
-  }
-
-  private function notFoundResponse()
-  {
-    return [
-      'status_code_header' => 'HTTP/1.1 404 Not Found',
-      'body' => json_encode(['message' => 'Not Found'])
-    ];
-  }
-
-  private function createdResponse()
-  {
-    return [
-      'status_code_header' => 'HTTP/1.1 201 Created',
-      'body' => json_encode(['message' => 'User Created'])
-    ];
-  }
-
-  private function internalServerErrorResponse()
-  {
-    return [
-      'status_code_header' => 'HTTP/1.1 500 Internal Server Error',
-      'body' => json_encode(['message' => 'Failed to create user'])
-    ];
-  }
-
-  private function unprocessableEntityResponse()
-  {
-    return [
-      'status_code_header' => 'HTTP/1.1 422 Unprocessable Entity',
-      'body' => json_encode(['message' => 'Invalid input'])
-    ];
+    $this->user->id = $id;
+    $result = $this->user->delete();
+    $result->fetch(PDO::FETCH_ASSOC);
+    return $this->response->getResponse('HTTP/1.1 200 OK', ["message" => "User deleted"]);
   }
 }
