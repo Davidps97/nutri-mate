@@ -1,27 +1,29 @@
-import { useState, useEffect } from "react";
 import { getFoods } from "@/services/FoodServices";
 
-export default function Home() {
-  const [foodData, setFoodData] = useState(null);
-  useEffect(() => {
-    const fetchData = async () => {
-      const data = await getFoods("rice 100gr");
-      setFoodData(data);
-    };
-    fetchData();
-  }, []);
-
+const Home = ({ foodData }) => {
   return (
     <div>
       <div>aaaaa</div>
-      {foodData && (
+      {
+        foodData &&
         <div>
           <h2>Información nutricional:</h2>
           <p>Nombre: {foodData.ingredients[0].text}</p>
           <p>Calorías: {foodData.calories}</p>
           <p>Peso total: {foodData.totalWeight}</p>
         </div>
-      )}
+      }
     </div>
   );
-}
+};
+
+export const getServerSideProps = async () => {
+  const foodData = await getFoods("rice 100gr");
+  return {
+    props: {
+      foodData,
+    },
+  };
+};
+
+export default Home;

@@ -19,7 +19,6 @@ export const getFoods = async (ingredient) => {
         },
       }
     );
-    console.log(response.data);
     return response.data;
   } catch (error) {
     console.error("Error fetching data:", error);
